@@ -55,8 +55,8 @@ unhappy). Prämien and Gewinnspiele are dropped.
 ## Weekly refresh
 
 `.github/workflows/weekly.yml` runs Mondays 04:40 UTC on GitHub Actions and
-publishes `web/index.html` to the `gh-pages` branch via `tools/publish.sh`
-(one fresh commit each week, no history). Images are cached between runs.
+deploys `web/index.html` straight to GitHub Pages (`actions/deploy-pages`), so
+nothing generated is ever committed. Images are cached between runs.
 
 Baseline (KW 41/2026): ~225 raw entries → ~88 running campaigns, about half
 of them 100 % refunds. A source dropping to 0 in the run summary means its

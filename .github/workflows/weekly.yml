@@ -13,12 +13,17 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -42,10 +47,18 @@ jobs:
       - name: Website bauen
         run: python build_site.py
 
+      # Deployed from this job rather than via a gh-pages branch: the separate
+      # legacy "pages build" job sat unassigned for 15 min and was cancelled
+      # on the first run, while this job had a runner already.
+      - name: Seite paketieren
+        run: |
+          mkdir -p _site && cp web/index.html _site/ && touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
       - name: Veröffentlichen
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash tools/publish.sh
+        id: deploy
+        uses: actions/deploy-pages@v4
 
       - name: Zusammenfassung
         if: always()
