@@ -1,0 +1,61 @@
+name: Gratis-Aktionen aktualisieren
+
+# Every source answers plain HTTP (no bot walls, no browser needed), so this
+# is a straight scrape -> merge -> build -> publish. DealDoktor refreshes its
+# overview at the weekend, hence Monday morning.
+on:
+  schedule:
+    - cron: '40 4 * * 1'      # Mondays 04:40 UTC (06:40 Berlin, 05:40 in winter)
+  workflow_dispatch:
+
+concurrency:
+  group: gratis
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Abhängigkeiten
+        run: python -m pip install --quiet -r requirements.txt
+
+      - name: Bild-Cache
+        uses: actions/cache@v4
+        with:
+          path: web/img
+          key: gratis-images-${{ github.run_id }}
+          restore-keys: gratis-images-
+
+      - name: Aktionen einlesen
+        run: python run.py
+
+      - name: Website bauen
+        run: python build_site.py
+
+      - name: Veröffentlichen
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/publish.sh
+
+      - name: Zusammenfassung
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY" || true
+          import json
+          d = json.load(open("data/latest.json"))
+          print(f"## {d['iso_week']} — {len(d['offers'])} Aktionen\n")
+          print("| Quelle | Einträge | davon laufend |")
+          print("|---|---:|---:|")
+          for s in d["sources"].values():
+              print(f"| {s['name']} | {s['count'] if s['ok'] else 'FEHLER'} | {s.get('kept', 0)} |")
+          PY

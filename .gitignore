@@ -1,0 +1,10 @@
+.venv/
+.publish/
+.pages/
+web/index.html
+web/img/
+data/
+logs/
+__pycache__/
+*.pyc
+.DS_Store
